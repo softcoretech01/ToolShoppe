@@ -22,15 +22,22 @@ export default function QuotationView() {
   const [showSourcing, setShowSourcing] = useState(false)
   const [resend, setResend] = useState(false)
 
-  const cq = state.customerQuotations.find((x) => x.id === id)
+  const cq = (state.customerQuotations || []).find((x) => String(x.id) === String(id) || (x.localId && String(x.localId) === String(id)) || String(x.cqNo) === String(id))
   useDocLabel(cq ? cq.cqNo : null)
+
+  React.useEffect(() => {
+    if (cq && String(cq.id) !== String(id) && typeof cq.id !== 'undefined') {
+      nav(`/sales/quotation/${cq.id}`, { replace: true })
+    }
+  }, [cq, id, nav])
+
   if (!cq) return <Navigate to="/sales/quotation" replace />
 
-  const cust = state.customers.find((c) => c.id === cq.customerId)
+  const cust = (state.customers || []).find((c) => String(c.id) === String(cq.customerId))
   const cr = getCR(state, cq.crId)
-  const qc = state.quotationComparisons.find((x) => x.id === cq.qcId)
-  const vq = qc ? state.vendorQuotations.find((v) => v.id === qc.selectedVqId) : null
-  const so = state.salesOrders.find((x) => x.cqId === cq.id)
+  const qc = (state.quotationComparisons || []).find((x) => String(x.id) === String(cq.qcId))
+  const vq = qc ? (state.vendorQuotations || []).find((v) => String(v.id) === String(qc.selectedVqId)) : null
+  const so = (state.salesOrders || []).find((x) => String(x.cqId) === String(cq.id))
 
   const subtotal = round2(sum(cq.lines, (l) => l.qty * l.customerPrice))
   const tax = round2(sum(cq.lines, (l) => (l.qty * l.customerPrice * (l.taxPct || 0)) / 100))
@@ -76,8 +83,12 @@ export default function QuotationView() {
         backTo="/sales/quotation"
         actions={
           <>
-            <Btn variant="secondary" icon={Mail} onClick={() => setResend(true)}>
-              Resend
+            <Btn
+              variant={cq.status === 'Draft' ? 'primary' : 'secondary'}
+              icon={Mail}
+              onClick={() => setResend(true)}
+            >
+              {cq.status === 'Draft' ? 'Send to Customer' : 'Resend'}
             </Btn>
             {cq.status === 'Sent' && (
               <>
@@ -232,17 +243,17 @@ export default function QuotationView() {
 
       <EmailPopup
         open={resend}
-        title={`Resend quotation ${cq.cqNo}`}
-        okText="Resend quotation"
+        title={cq.status === 'Draft' ? `Send quotation ${cq.cqNo}` : `Resend quotation ${cq.cqNo}`}
+        okText={cq.status === 'Draft' ? 'Send to Customer' : 'Resend quotation'}
         recipients={cust ? [cust.email] : []}
         defaultSubject={`Quotation ${cq.cqNo} — ${cr ? cr.reference || cr.crNo : ''}`}
         defaultBody={`Dear Sir,\n\nPlease find our quotation ${cq.cqNo} dated ${fmtDate(cq.date)}, valid till ${fmtDate(
           cq.validTill
-        )}. Total value ${inr(subtotal)} (excluding GST).\n\nRegards,\nToolsphoppe`}
+        )}. Total value ${inr(subtotal)} (excluding GST).\n\nRegards,\nSales & Sourcing Department\nToolShoppe Industrial Supply Pvt. Ltd.\ntdevendiran123@gmail.com`}
         onCancel={() => setResend(false)}
         onSend={({ subject, body }) => {
           dispatch({ type: 'CQ_RESEND', cqId: cq.id, subject, body })
-          toast.success('Quotation email resent — see the Email Log.')
+          toast.success(cq.status === 'Draft' ? 'Quotation sent to customer successfully!' : 'Quotation email resent — see the Email Log.')
           setResend(false)
         }}
       />

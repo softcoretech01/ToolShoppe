@@ -78,19 +78,25 @@ export default function SalesInvoice() {
       sorter: true,
       render: (v, r) => <a className="doc-no" onClick={() => nav(`/sales/invoice/${r.id}`)}>{v}</a>,
     },
-    { title: 'Customer', dataIndex: 'customer', sorter: true, render: (v) => <span style={{ fontWeight: 550 }}>{v}</span> },
-    { title: 'Outward No', dataIndex: 'outNo', width: 122, render: (v, r) => <a className="doc-no" onClick={() => nav(`/sales/outward/${r.outId}`)}>{v}</a> },
-    { title: 'Request No', dataIndex: 'crNo', width: 122, render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
-    { title: 'Date', dataIndex: 'date', width: 126, sorter: true, render: fmtDate },
-    { title: 'Taxable', dataIndex: 'subtotal', width: 136, numeric: true, render: (v) => <Money value={v} /> },
-    { title: 'Tax', dataIndex: 'tax', width: 124, numeric: true, render: (v) => <Money value={v} muted /> },
-    { title: 'Amount', dataIndex: 'total', width: 152, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
-    { title: 'Due date', dataIndex: 'dueDate', width: 126, render: fmtDate },
-    { title: 'Status', dataIndex: 'status', width: 108, render: (v) => <StatusBadge status={v} /> },
+    {
+      title: 'Customer',
+      dataIndex: 'customer',
+      width: 170,
+      ellipsis: true,
+      sorter: true,
+      render: (v) => <span style={{ fontWeight: 550 }}>{v}</span>,
+    },
+    { title: 'Outward No', dataIndex: 'outNo', width: 105, render: (v, r) => <a className="doc-no" onClick={() => nav(`/sales/outward/${r.outId}`)}>{v}</a> },
+    { title: 'Request No', dataIndex: 'crNo', width: 105, render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
+    { title: 'Date', dataIndex: 'date', width: 115, sorter: true, render: fmtDate },
+    { title: 'Taxable', dataIndex: 'subtotal', width: 110, numeric: true, render: (v) => <Money value={v} /> },
+    { title: 'Tax', dataIndex: 'tax', width: 95, numeric: true, render: (v) => <Money value={v} muted /> },
+    { title: 'Amount', dataIndex: 'total', width: 115, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
+    { title: 'Due date', dataIndex: 'dueDate', width: 110, render: fmtDate },
+    { title: 'Status', dataIndex: 'status', width: 95, render: (v) => <StatusBadge status={v} /> },
     {
       title: 'Actions',
-      width: 78,
-      fixed: 'right',
+      width: 75,
       render: (_, r) => (
         <RowActions>
           <IconBtn icon={Eye} label="View invoice" onClick={() => nav(`/sales/invoice/${r.id}`)} />
@@ -125,7 +131,7 @@ export default function SalesInvoice() {
       <DataTable
         columns={columns}
         data={rows}
-        scrollX={1480}
+        scrollX={1180}
         showRange
         searchKeys={['siNo', 'soNo', 'outNo', 'crNo', 'customer']}
         searchPlaceholder="Search invoice, outward, request…"

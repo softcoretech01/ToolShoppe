@@ -107,7 +107,7 @@ export default function CustomerRequest() {
         data={rows}
         scrollX={1180}
         showRange
-        searchKeys={['crNo', 'reference', 'customer']}
+        searchKeys={['crNo', 'reference', 'customer', (r) => String(r.id), (r) => String(r.crNo)]}
         searchPlaceholder="Search request no, customer, reference…"
         filters={[
           { key: 'stage', placeholder: 'Status', width: 170, options: CR_STAGES.map((x) => ({ value: x, label: x })) },

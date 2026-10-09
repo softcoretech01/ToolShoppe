@@ -77,13 +77,20 @@ export default function PurchaseRequest() {
       width: 148,
       render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip>,
     },
-    { title: 'Customer', dataIndex: 'customer', sorter: true, render: (v) => <span style={{ fontWeight: 550 }}>{v}</span> },
-    { title: 'Date', dataIndex: 'date', width: 124, sorter: true, render: fmtDate },
+    {
+      title: 'Customer',
+      dataIndex: 'customer',
+      width: 170,
+      ellipsis: true,
+      sorter: true,
+      render: (v) => <span style={{ fontWeight: 550 }}>{v}</span>,
+    },
+    { title: 'Date', dataIndex: 'date', width: 120, sorter: true, render: fmtDate },
     { title: 'Items', width: 78, numeric: true, render: (_, r) => <span className="num">{r.lines.length}</span> },
     {
       title: 'Suppliers asked',
       dataIndex: 'askedCount',
-      width: 134,
+      width: 130,
       numeric: true,
       sorter: true,
       render: (v) => <span className="num">{v}</span>,
@@ -91,7 +98,7 @@ export default function PurchaseRequest() {
     {
       title: 'Quotes received',
       dataIndex: 'quoteCount',
-      width: 136,
+      width: 130,
       numeric: true,
       sorter: true,
       render: (v) => (
@@ -100,13 +107,14 @@ export default function PurchaseRequest() {
         </span>
       ),
     },
-    { title: 'Status', dataIndex: 'status', width: 124, render: (v) => <StatusBadge status={v} /> },
+    { title: 'Status', dataIndex: 'status', width: 120, render: (v) => <StatusBadge status={v} /> },
     {
       title: 'Actions',
-      width: 300,
+      width: 270,
       fixed: 'right',
       render: (_, r) => (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
+          <IconBtn icon={Eye} label="View request" onClick={() => nav(`/purchase/request/${r.id}`)} />
           {r.status !== 'Ordered' && (
             <Btn variant="outline" size="small" icon={Send} onClick={() => openRfq(r)}>
               Send RFQ
@@ -114,10 +122,9 @@ export default function PurchaseRequest() {
           )}
           {r.quoteCount >= 1 && r.status !== 'Ordered' && (
             <Btn variant="primary" size="small" icon={GitCompareArrows} onClick={() => compare(r)}>
-              {r.quoteCount >= 2 ? 'Compare' : 'Proceed with one'}
+              {r.quoteCount >= 2 ? 'Compare' : 'Proceed'}
             </Btn>
           )}
-          <IconBtn icon={Eye} label="View request" onClick={() => nav(`/purchase/request/${r.id}`)} />
         </div>
       ),
     },
@@ -133,7 +140,7 @@ export default function PurchaseRequest() {
       <DataTable
         columns={columns}
         data={rows}
-        scrollX={1480}
+        scrollX={1320}
         showRange
         searchKeys={['prNo', 'crNo', 'customer']}
         searchPlaceholder="Search PR no, request no, customer…"

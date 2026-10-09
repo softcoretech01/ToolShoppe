@@ -19,28 +19,44 @@ export default function ComparisonView() {
   const { state, dispatch } = useApp()
   const toast = useToast()
 
-  const qc = state.quotationComparisons.find((x) => x.id === id)
+  const qc = state.quotationComparisons.find((x) => x.id === id || String(x.id) === String(id) || String(x.qcNo) === String(id) || (x.localId && String(x.localId) === String(id)))
   const [sel, setSel] = useState(qc ? qc.selectedVqId : null)
   const [reason, setReason] = useState(qc ? qc.overrideReason : '')
   const [sendOpen, setSendOpen] = useState(false)
   const [priceLines, setPriceLines] = useState([])
   const [validTill, setValidTill] = useState(addDays(today(), 15))
 
-  const pr = qc ? state.purchaseRequests.find((p) => p.id === qc.prId) : null
-  const cr = pr ? getCR(state, pr.crId) : null
-  const cust = cr ? state.customers.find((c) => c.id === cr.customerId) : null
+  const pr = qc ? state.purchaseRequests.find((p) => p.id === qc.prId || String(p.id) === String(qc.prId)) : null
+  const cr = pr ? getCR(state, pr.crId) : (qc && qc.crId ? getCR(state, qc.crId) : null)
+  const cust = cr ? state.customers.find((c) => c.id === cr.customerId || String(c.id) === String(cr.customerId)) : null
   const vqs = useMemo(
-    () => (qc ? qc.vqIds.map((vid) => state.vendorQuotations.find((v) => v.id === vid)).filter(Boolean) : []),
+    () => (qc ? (qc.vqIds || []).map((vid) => state.vendorQuotations.find((v) => v.id === vid || String(v.id) === String(vid))).filter(Boolean) : []),
     [qc, state.vendorQuotations]
   )
   const cellBest = useMemo(() => (pr ? bestRatePerItem(vqs, pr.lines) : {}), [vqs, pr])
   useDocLabel(qc ? qc.qcNo : null)
 
-  if (!qc || !pr) return <Navigate to="/purchase/quotation-comparison" replace />
+  if (!qc) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center' }}>
+        <p className="muted" style={{ fontSize: 15, marginBottom: 16 }}>Comparison not found or loading...</p>
+        <Btn variant="primary" onClick={() => nav('/purchase/quotation-comparison')}>Back to Quotation Comparisons</Btn>
+      </div>
+    )
+  }
+
+  if (!pr) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center' }}>
+        <p className="muted" style={{ fontSize: 15, marginBottom: 16 }}>Linked Purchase Request not found or loading...</p>
+        <Btn variant="primary" onClick={() => nav('/purchase/quotation-comparison')}>Back to Quotation Comparisons</Btn>
+      </div>
+    )
+  }
 
   const approved = qc.status !== 'Draft'
-  const selectedVq = state.vendorQuotations.find((v) => v.id === qc.selectedVqId)
-  const cq = state.customerQuotations.find((c) => c.qcId === qc.id)
+  const selectedVq = state.vendorQuotations.find((v) => v.id === qc.selectedVqId || String(v.id) === String(qc.selectedVqId))
+  const cq = state.customerQuotations.find((c) => c.qcId === qc.id || String(c.qcId) === String(qc.id))
   const rateOf = (vq, itemId) => (vq.lines || []).find((l) => l.itemId === itemId)
 
   /* ------------------------------ comparison grid ----------------------------- */
@@ -149,6 +165,7 @@ export default function ComparisonView() {
 
   /* -------------------------- send quotation to customer ---------------------- */
   const openSend = () => {
+    if (!selectedVq) return toast.warning('Please select and approve a quotation first.')
     const markup = cust ? cust.markupPct : 15
     setPriceLines(
       (selectedVq.lines || [])
@@ -181,7 +198,7 @@ export default function ComparisonView() {
         title="Quotation Comparison"
         docNo={qc.qcNo}
         status={qc.status}
-        subtitle={cr ? `${pr.prNo} · ${cr.crNo} · ${cust ? cust.name : ''}` : undefined}
+        subtitle={cr ? `${pr?.prNo || ''} · ${cr.crNo || ''} · ${cust ? cust.name : ''}` : pr?.prNo}
         backTo="/purchase/quotation-comparison"
         actions={
           <>
@@ -209,7 +226,7 @@ export default function ComparisonView() {
           <KV
             items={[
               ['Purchase request', <a className="doc-no" onClick={() => nav(`/purchase/request/${pr.id}`)}>{pr.prNo}</a>],
-              ['Customer request', <a className="doc-no" onClick={() => nav(`/sales/customer-request/${cr.id}`)}>{cr.crNo}</a>],
+              ['Customer request', cr ? <a className="doc-no" onClick={() => nav(`/sales/customer-request/${cr.id}`)}>{cr.crNo}</a> : '—'],
               ['Customer', cust ? cust.name : '—'],
               ['Markup on file', cust ? <Pct value={cust.markupPct} /> : '—'],
               ['Quotations compared', vqs.length],
@@ -224,7 +241,9 @@ export default function ComparisonView() {
               items={[
                 [
                   'Recommended',
-                  qc.bestVqId ? supplierName(state, state.vendorQuotations.find((v) => v.id === qc.bestVqId).supplierId) : '—',
+                  qc.bestVqId
+                    ? supplierName(state, (state.vendorQuotations.find((v) => v.id === qc.bestVqId || String(v.id) === String(qc.bestVqId)) || {}).supplierId)
+                    : '—',
                 ],
                 ['Selected supplier', selectedVq ? `${supplierName(state, selectedVq.supplierId)} — ${selectedVq.vqNo}` : '—'],
                 ['Selected total', selectedVq ? <Money value={selectedVq.grandTotal} strong /> : '—'],
@@ -287,7 +306,7 @@ export default function ComparisonView() {
         width={960}
         recipients={cust ? [cust.email] : []}
         defaultSubject={cr ? `Quotation for your enquiry ${cr.reference || cr.crNo}` : 'Quotation'}
-        defaultBody={'Dear Sir,\n\nThank you for your enquiry. Please find our offer below. Prices are ex-works and exclusive of GST.\n\nRegards,\nToolsphoppe'}
+        defaultBody={'Dear Sir,\n\nThank you for your enquiry. Please find our offer below. Prices are ex-works and exclusive of GST.\n\nRegards,\nSales & Sourcing Department\nToolShoppe Industrial Supply Pvt. Ltd.\ntdevendiran123@gmail.com'}
         onCancel={() => setSendOpen(false)}
         onSend={send}
       >

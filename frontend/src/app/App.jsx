@@ -34,6 +34,7 @@ import PurchaseOrderView from '../modules/purchase/PurchaseOrderView.jsx'
 import GRN from '../modules/purchase/GRN.jsx'
 import GRNView from '../modules/purchase/GRNView.jsx'
 import Inward from '../modules/purchase/Inward.jsx'
+import InwardView from '../modules/purchase/InwardView.jsx'
 import PurchaseInvoice from '../modules/purchase/PurchaseInvoice.jsx'
 import PurchaseInvoiceView from '../modules/purchase/PurchaseInvoiceView.jsx'
 import Inventory from '../modules/inventory/Inventory.jsx'
@@ -139,6 +140,7 @@ export default function App() {
                 <Route path="/purchase/grn" element={<GRN />} />
                 <Route path="/purchase/grn/:id" element={<GRNView />} />
                 <Route path="/purchase/inward" element={<Inward />} />
+                <Route path="/purchase/inward/:id" element={<InwardView />} />
                 <Route path="/purchase/invoice" element={<PurchaseInvoice />} />
                 <Route path="/purchase/invoice/:id" element={<PurchaseInvoiceView />} />
 
@@ -150,7 +152,7 @@ export default function App() {
           </DocLabelProvider>
 
           <footer className="app-footer no-print">
-            <span>Toolsphoppe ERP — back-to-back trading prototype</span>
+            <span>ToolShoppe ERP — Back-to-Back Trading System</span>
             <span>Stock exists only between a supplier delivery and the customer shipment of the same order.</span>
           </footer>
         </Content>

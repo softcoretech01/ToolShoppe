@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Input, InputNumber, Row, Col, Switch, Tooltip } from 'antd'
-import { Plus, Pencil, Eye, Users, Power, PowerOff } from 'lucide-react'
+import { Plus, Pencil, Eye, Users, Power, PowerOff, Trash2 } from 'lucide-react'
 import { useApp } from '../../store/AppContext.jsx'
 import {
   DataTable, PageHeader, StatusBadge, Btn, IconBtn, RowActions, FormModal,
@@ -18,15 +18,45 @@ export default function Customers() {
   const toast = useToast()
   const [draft, setDraft] = useState(null)
   const [view, setView] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
-  const save = () => {
+  const save = async () => {
     if (!draft.name.trim()) return toast.warning('Please enter the customer name.')
+    const phoneDigits = (draft.phone || '').replace(/\D/g, '')
+    if (!phoneDigits) return toast.warning('Please enter the 10-digit mobile number.')
+    if (phoneDigits.length !== 10) return toast.warning('Mobile number must be exactly 10 digits.')
     if (!/^\S+@\S+\.\S+$/.test(draft.email || '')) return toast.warning('Please enter a valid email address.')
-    dispatch({ type: 'MASTER_SAVE', collection: 'customers', codeType: 'CUS', record: draft })
-    toast.success(draft.id ? 'Customer updated successfully.' : 'Customer created successfully.')
-    setDraft(null)
+    const isDup = (state.customers || []).some(
+      (c) => c.name && c.name.trim().toLowerCase() === draft.name.trim().toLowerCase() && String(c.id) !== String(draft.id)
+    )
+    if (isDup) return toast.warning(`A customer named "${draft.name.trim()}" already exists.`)
+    const isDupEmail = (state.customers || []).some(
+      (c) => c.email && c.email.trim().toLowerCase() === draft.email.trim().toLowerCase() && String(c.id) !== String(draft.id)
+    )
+    if (isDupEmail) return toast.warning(`A customer with email "${draft.email.trim()}" already exists.`)
+
+    const updatedDraft = { ...draft, phone: phoneDigits }
+    setSubmitting(true)
+    try {
+      await dispatch({
+        type: 'MASTER_SAVE',
+        collection: 'customers',
+        codeType: 'CUS',
+        record: updatedDraft,
+        throwOnError: true,
+      })
+      toast.success(draft.id ? 'Customer updated successfully.' : 'Customer created successfully.')
+      setDraft(null)
+    } catch (err) {
+      if (!draft.id) {
+        dispatch({ type: 'MASTER_DELETE', collection: 'customers', id: updatedDraft.name })
+      }
+      toast.error(err?.message || 'Failed to save customer. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const toggle = (r) =>
@@ -43,17 +73,32 @@ export default function Customers() {
       },
     })
 
+  const removeCustomer = (r) =>
+    confirm({
+      title: `Delete customer "${r.name}"?`,
+      description: `This will permanently delete ${r.name} (${r.code || ''}) from the system.`,
+      okText: 'Delete Customer',
+      tone: 'danger',
+      onConfirm: () => {
+        dispatch({ type: 'MASTER_DELETE', collection: 'customers', id: r.id })
+        toast.success(`Customer "${r.name}" deleted successfully.`)
+      },
+    })
+
   const columns = [
     {
       title: 'Customer',
       dataIndex: 'name',
       sorter: true,
-      render: (v, r) => (
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 550 }}>{v}</div>
-          <div className="dim" style={{ fontSize: 11.5 }}>{r.paymentTerms}</div>
-        </div>
-      ),
+      render: (v, r) => {
+        const terms = r.paymentTerms && r.paymentTerms.trim().toLowerCase() !== 'string' ? r.paymentTerms.trim() : null
+        return (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 550 }}>{v}</div>
+            {terms && <div className="dim" style={{ fontSize: 11.5 }}>{terms}</div>}
+          </div>
+        )
+      },
     },
     { title: 'Contact', dataIndex: 'contactPerson', width: 150 },
     { title: 'Phone', dataIndex: 'phone', width: 148, render: (v) => <span className="num">{v}</span> },
@@ -62,7 +107,7 @@ export default function Customers() {
     { title: 'Status', width: 106, render: (_, r) => <StatusBadge status={r.active ? 'Active' : 'Inactive'} /> },
     {
       title: 'Actions',
-      width: 116,
+      width: 140,
       fixed: 'right',
       render: (_, r) => (
         <RowActions>
@@ -73,6 +118,12 @@ export default function Customers() {
             label={r.active ? 'Deactivate' : 'Reactivate'}
             danger={r.active}
             onClick={() => toggle(r)}
+          />
+          <IconBtn
+            icon={Trash2}
+            label="Delete"
+            danger
+            onClick={() => removeCustomer(r)}
           />
         </RowActions>
       ),
@@ -122,8 +173,9 @@ export default function Customers() {
         open={!!draft}
         title={draft?.id ? `Edit customer ${draft.code}` : 'New customer'}
         subtitle="Fields marked with an asterisk are required."
-        onCancel={() => setDraft(null)}
+        onCancel={() => !submitting && setDraft(null)}
         onOk={save}
+        confirmLoading={submitting}
         okText={draft?.id ? 'Save changes' : 'Create customer'}
         width={860}
       >
@@ -142,8 +194,13 @@ export default function Customers() {
                   </Field>
                 </Col>
                 <Col xs={24} md={8}>
-                  <Field label="Phone">
-                    <Input value={draft.phone} onChange={(e) => set({ phone: e.target.value })} />
+                  <Field label="Mobile number" required help="Must be exactly 10 digits">
+                    <Input
+                      value={draft.phone}
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      onChange={(e) => set({ phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    />
                   </Field>
                 </Col>
                 <Col xs={24} md={9}>

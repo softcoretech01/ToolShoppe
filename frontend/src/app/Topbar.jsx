@@ -14,7 +14,8 @@ import { useConfirm, useToast } from '../components/ui/index.js'
 export default function Topbar({ collapsed, onToggle, docLabel }) {
   const loc = useLocation()
   const nav = useNavigate()
-  const { state } = useApp()
+  const { state, backendConnected, refreshFromBackend, logout } = useApp()
+  const toast = useToast()
 
   const crumbs = breadcrumbFor(loc.pathname, docLabel)
   const c = dashboardCounts(state)
@@ -97,13 +98,76 @@ export default function Topbar({ collapsed, onToggle, docLabel }) {
         </span>
       </Dropdown>
 
-      <div className="tb-user" style={{ cursor: 'default' }}>
-        <div className="tb-avatar">DU</div>
-        <div className="tb-umeta">
-          <div className="tb-uname">Demo User</div>
-          <div className="tb-urole">Administrator</div>
+      <Tooltip title={backendConnected ? 'Backend Live & Synced (Click to Refresh)' : 'Connecting to API (Click to Reconnect)'}>
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={async () => {
+            toast.info(backendConnected ? 'Synchronizing with backend API...' : 'Connecting to backend API...')
+            const ok = await refreshFromBackend()
+            if (ok) {
+              toast.success('FastAPI backend connected & synced!')
+            } else {
+              toast.warning('Backend unreachable, retrying automatically...')
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            padding: '4px 10px',
+            width: 'auto',
+            borderRadius: 16,
+            background: backendConnected ? '#ECFDF5' : '#FEF2F2',
+            color: backendConnected ? '#059669' : '#DC2626',
+            border: `1px solid ${backendConnected ? '#A7F3D0' : '#FECACA'}`,
+            fontWeight: 500,
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: backendConnected ? '#10B981' : '#EF4444',
+            }}
+          />
+          <span>{backendConnected ? 'FastAPI Live' : 'Reconnecting...'}</span>
+          <RotateCw size={12} strokeWidth={2} />
+        </button>
+      </Tooltip>
+
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'role',
+              label: <span className="muted" style={{ fontSize: 12 }}>Role: Administrator</span>,
+              disabled: true,
+            },
+            { type: 'divider' },
+            {
+              key: 'logout',
+              icon: <LogOut size={14} />,
+              label: 'Sign Out',
+              danger: true,
+              onClick: () => logout(),
+            },
+          ],
+        }}
+        trigger={['click']}
+        placement="bottomRight"
+      >
+        <div className="tb-user" style={{ cursor: 'pointer' }}>
+          <div className="tb-avatar">AD</div>
+          <div className="tb-umeta">
+            <div className="tb-uname">Admin</div>
+            <div className="tb-urole">Administrator</div>
+          </div>
+          <ChevronDown size={14} style={{ color: '#9CA3AF', marginLeft: 4 }} />
         </div>
-      </div>
+      </Dropdown>
     </header>
   )
 }

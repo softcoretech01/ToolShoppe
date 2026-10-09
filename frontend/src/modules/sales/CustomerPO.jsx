@@ -20,21 +20,57 @@ export default function CustomerPO() {
 
   // Quotations the customer accepted that have not been converted yet.
   const openCqs = useMemo(
-    () => state.customerQuotations.filter((q) => q.status === 'Accepted' && !state.salesOrders.some((so) => so.cqId === q.id)),
+    () =>
+      (state.customerQuotations || []).filter(
+        (q) =>
+          q.status === 'Accepted' &&
+          !(state.salesOrders || []).some((so) => String(so.cqId) === String(q.id))
+      ),
     [state]
   )
 
-  const startFor = (cqId) => {
-    const cq = state.customerQuotations.find((q) => q.id === cqId)
-    if (!cq) return
-    setDraft({
-      cqId,
-      date: today(),
-      customerPoNo: '',
-      customerPoDate: today(),
-      deliveryDate: null,
-      lines: cq.lines.map((l) => ({ itemId: l.itemId, qty: l.qty, price: l.customerPrice })),
+  // Options for quotation selector: accepted ones are selectable, others are disabled with reason
+  const quotationOptions = useMemo(() => {
+    return (state.customerQuotations || []).map((q) => {
+      const isAlreadyOrdered = (state.salesOrders || []).some((so) => String(so.cqId) === String(q.id))
+      const isAccepted = q.status === 'Accepted'
+      let label = `${q.cqNo} — ${customerName(state, q.customerId)}`
+      let disabled = false
+
+      if (isAlreadyOrdered) {
+        label += ' (Already Ordered)'
+        disabled = true
+      } else if (!isAccepted) {
+        label += ` (${q.status || 'Unaccepted'} - Unaccepted)`
+        disabled = true
+      } else {
+        label += ' (Accepted)'
+      }
+
+      return {
+        value: q.id,
+        label,
+        disabled,
+      }
     })
+  }, [state])
+
+  const startFor = (cqId) => {
+    const cq = (state.customerQuotations || []).find((q) => String(q.id) === String(cqId))
+    if (!cq) return
+    setDraft((prev) => ({
+      ...(prev || {}),
+      cqId: cq.id,
+      date: prev?.date || today(),
+      customerPoNo: prev?.customerPoNo || '',
+      customerPoDate: prev?.customerPoDate || today(),
+      deliveryDate: prev?.deliveryDate || null,
+      lines: (cq.lines || []).map((l) => ({
+        itemId: l.itemId,
+        qty: l.qty,
+        price: l.customerPrice,
+      })),
+    }))
   }
 
   useEffect(() => {
@@ -46,14 +82,16 @@ export default function CustomerPO() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
-  const cq = draft ? state.customerQuotations.find((q) => q.id === draft.cqId) : null
+  const cq = draft ? (state.customerQuotations || []).find((q) => String(q.id) === String(draft.cqId)) : null
   const cr = cq ? getCR(state, cq.crId) : null
-  const qc = cq ? state.quotationComparisons.find((x) => x.id === cq.qcId) : null
-  const vq = qc ? state.vendorQuotations.find((v) => v.id === qc.selectedVqId) : null
+  const qc = cq ? (state.quotationComparisons || []).find((x) => String(x.id) === String(cq.qcId)) : null
+  const vq = qc ? (state.vendorQuotations || []).find((v) => String(v.id) === String(qc.selectedVqId)) : null
 
   const save = () => {
     if (!draft.cqId) return toast.warning('Please select the accepted quotation.')
-    if (!draft.customerPoNo.trim()) return toast.warning("Please enter the customer's PO number.")
+    if (!draft.customerPoNo || !draft.customerPoNo.trim()) {
+      return toast.warning("Please enter the customer's PO number.")
+    }
     dispatch({ type: 'SO_CREATE', payload: draft })
     toast.success('Customer PO saved — the supplier purchase order was raised automatically.')
     setDraft(null)
@@ -61,9 +99,9 @@ export default function CustomerPO() {
 
   const rows = useMemo(
     () =>
-      state.salesOrders.map((so) => {
+      (state.salesOrders || []).map((so) => {
         const c = getCR(state, so.crId)
-        const q = state.customerQuotations.find((x) => x.id === so.cqId)
+        const q = (state.customerQuotations || []).find((x) => String(x.id) === String(so.cqId))
         return { ...so, crNo: c ? c.crNo : '—', cqNo: q ? q.cqNo : '—', customer: customerName(state, so.customerId) }
       }),
     [state]
@@ -119,10 +157,23 @@ export default function CustomerPO() {
     <Btn
       variant="primary"
       icon={Plus}
-      disabled={!openCqs.length}
-      onClick={() => setDraft({ cqId: null, date: today(), customerPoNo: '', customerPoDate: today(), deliveryDate: null, lines: [] })}
+      onClick={() => {
+        const firstOpen = openCqs[0]
+        if (firstOpen) {
+          startFor(firstOpen.id)
+        } else {
+          setDraft({
+            cqId: null,
+            date: today(),
+            customerPoNo: '',
+            customerPoDate: today(),
+            deliveryDate: null,
+            lines: [],
+          })
+        }
+      }}
     >
-      New Customer PO
+      Record Customer PO
     </Btn>
   )
 
@@ -134,12 +185,19 @@ export default function CustomerPO() {
         actions={newBtn}
       />
 
-      {!openCqs.length && state.salesOrders.length > 0 && (
+      {!openCqs.length && (
         <Alert
           style={{ marginBottom: 14 }}
           type="info"
           showIcon
-          message="No accepted quotation is waiting. Mark a customer quotation as Accepted to enable this step."
+          message="No accepted quotation is waiting."
+          description={
+            <div style={{ marginTop: 4 }}>
+              <span>Mark a customer quotation as Accepted in </span>
+              <a onClick={() => nav('/sales/quotation')} style={{ fontWeight: 600 }}>Sales ➔ Customer Quotation</a>
+              <span> to convert it into a purchase order, or click "+ Record Customer PO" to view and select quotations.</span>
+            </div>
+          }
         />
       )}
 
@@ -170,16 +228,47 @@ export default function CustomerPO() {
 
       <FormModal
         open={!!draft}
-        title="New customer purchase order"
+        title="Record Customer PO"
         subtitle="Enter the order exactly as it appears on the customer's own document."
         onCancel={() => setDraft(null)}
         onOk={save}
-        okText="Save customer PO"
+        okText="Create Order"
         width={980}
         footerNote={vq ? `A purchase order will be raised on ${supplierName(state, vq.supplierId)} at their quoted rates.` : undefined}
       >
         {draft && (
           <>
+            {!openCqs.length && (
+              <Alert
+                style={{ marginBottom: 16 }}
+                type="warning"
+                showIcon
+                message="No accepted quotation is currently available."
+                description={
+                  <span>
+                    To convert a quotation, mark it as Accepted in{' '}
+                    <a onClick={() => nav('/sales/quotation')} style={{ fontWeight: 600 }}>Customer Quotation (Step 05)</a>, or{' '}
+                    <a
+                      onClick={() => {
+                        const candidate = (state.customerQuotations || []).find(
+                          (q) => !(state.salesOrders || []).some((so) => String(so.cqId) === String(q.id))
+                        )
+                        if (candidate) {
+                          dispatch({ type: 'CQ_SET_STATUS', cqId: candidate.id, status: 'Accepted' })
+                          startFor(candidate.id)
+                          toast.success(`Marked ${candidate.cqNo} as Accepted for testing.`)
+                        } else {
+                          toast.info('No available quotations to accept.')
+                        }
+                      }}
+                      style={{ fontWeight: 600 }}
+                    >
+                      click here to mark an available quotation as Accepted
+                    </a>.
+                  </span>
+                }
+              />
+            )}
             <FormSection title="Order information">
               <Row gutter={16}>
                 <Col xs={24} md={10}>
@@ -191,10 +280,7 @@ export default function CustomerPO() {
                       placeholder="Select the accepted quotation"
                       value={draft.cqId || undefined}
                       onChange={startFor}
-                      options={openCqs.map((q) => ({
-                        value: q.id,
-                        label: `${q.cqNo} — ${customerName(state, q.customerId)}`,
-                      }))}
+                      options={quotationOptions}
                     />
                   </Field>
                 </Col>

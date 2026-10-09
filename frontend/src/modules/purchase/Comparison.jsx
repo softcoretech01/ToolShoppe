@@ -14,10 +14,10 @@ export default function Comparison() {
   const rows = useMemo(
     () =>
       s.quotationComparisons.map((qc) => {
-        const pr = s.purchaseRequests.find((p) => p.id === qc.prId)
-        const cr = pr ? getCR(s, pr.crId) : null
-        const sel = s.vendorQuotations.find((v) => v.id === qc.selectedVqId)
-        const best = s.vendorQuotations.find((v) => v.id === qc.bestVqId)
+        const pr = s.purchaseRequests.find((p) => p.id === qc.prId || String(p.id) === String(qc.prId))
+        const cr = pr ? getCR(s, pr.crId) : (qc.crId ? getCR(s, qc.crId) : null)
+        const sel = s.vendorQuotations.find((v) => v.id === qc.selectedVqId || String(v.id) === String(qc.selectedVqId))
+        const best = s.vendorQuotations.find((v) => v.id === qc.bestVqId || String(v.id) === String(qc.bestVqId))
         return {
           ...qc,
           prNo: pr ? pr.prNo : '—',
@@ -25,14 +25,14 @@ export default function Comparison() {
           crId: cr ? cr.id : null,
           compared: (qc.vqIds || []).length,
           suppliers: (qc.vqIds || [])
-            .map((vid) => s.vendorQuotations.find((v) => v.id === vid))
+            .map((vid) => s.vendorQuotations.find((v) => v.id === vid || String(v.id) === String(vid)))
             .filter(Boolean)
             .map((v) => supplierName(s, v.supplierId))
             .join(', '),
           best: best ? supplierName(s, best.supplierId) : '—',
           selected: sel ? supplierName(s, sel.supplierId) : '—',
           selectedTotal: sel ? sel.grandTotal : 0,
-          override: sel && best && sel.id !== best.id,
+          override: sel && best && String(sel.id) !== String(best.id),
         }
       }),
     [s]

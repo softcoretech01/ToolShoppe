@@ -19,15 +19,45 @@ export default function Suppliers() {
   const toast = useToast()
   const [draft, setDraft] = useState(null)
   const [view, setView] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
-  const save = () => {
+  const save = async () => {
     if (!draft.name.trim()) return toast.warning('Please enter the supplier name.')
+    const phoneDigits = (draft.phone || '').replace(/\D/g, '')
+    if (!phoneDigits) return toast.warning('Please enter the 10-digit mobile number.')
+    if (phoneDigits.length !== 10) return toast.warning('Mobile number must be exactly 10 digits.')
     if (!/^\S+@\S+\.\S+$/.test(draft.email || '')) return toast.warning('Please enter a valid email address.')
-    dispatch({ type: 'MASTER_SAVE', collection: 'suppliers', codeType: 'SUP', record: draft })
-    toast.success(draft.id ? 'Supplier updated successfully.' : 'Supplier created successfully.')
-    setDraft(null)
+    const isDup = (state.suppliers || []).some(
+      (s) => s.name && s.name.trim().toLowerCase() === draft.name.trim().toLowerCase() && String(s.id) !== String(draft.id)
+    )
+    if (isDup) return toast.warning(`A supplier named "${draft.name.trim()}" already exists.`)
+    const isDupEmail = (state.suppliers || []).some(
+      (s) => s.email && s.email.trim().toLowerCase() === draft.email.trim().toLowerCase() && String(s.id) !== String(draft.id)
+    )
+    if (isDupEmail) return toast.warning(`A supplier with email "${draft.email.trim()}" already exists.`)
+
+    const updatedDraft = { ...draft, phone: phoneDigits }
+    setSubmitting(true)
+    try {
+      await dispatch({
+        type: 'MASTER_SAVE',
+        collection: 'suppliers',
+        codeType: 'SUP',
+        record: updatedDraft,
+        throwOnError: true,
+      })
+      toast.success(draft.id ? 'Supplier updated successfully.' : 'Supplier created successfully.')
+      setDraft(null)
+    } catch (err) {
+      if (!draft.id) {
+        dispatch({ type: 'MASTER_DELETE', collection: 'suppliers', id: updatedDraft.name })
+      }
+      toast.error(err?.message || 'Failed to save supplier. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const toggle = (r) =>
@@ -128,8 +158,9 @@ export default function Suppliers() {
         open={!!draft}
         title={draft?.id ? `Edit supplier ${draft.code}` : 'New supplier'}
         subtitle="Fields marked with an asterisk are required."
-        onCancel={() => setDraft(null)}
+        onCancel={() => !submitting && setDraft(null)}
         onOk={save}
+        confirmLoading={submitting}
         okText={draft?.id ? 'Save changes' : 'Create supplier'}
         width={860}
       >
@@ -148,8 +179,13 @@ export default function Suppliers() {
                   </Field>
                 </Col>
                 <Col xs={24} md={8}>
-                  <Field label="Phone">
-                    <Input value={draft.phone} onChange={(e) => set({ phone: e.target.value })} />
+                  <Field label="Mobile number" required help="Must be exactly 10 digits">
+                    <Input
+                      value={draft.phone}
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      onChange={(e) => set({ phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    />
                   </Field>
                 </Col>
                 <Col xs={24} md={9}>

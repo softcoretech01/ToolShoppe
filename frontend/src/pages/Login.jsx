@@ -13,9 +13,10 @@ export default function Login() {
   const [pass, setPass] = useState('')
   const [error, setError] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!login(user, pass)) {
+    const success = await login(user, pass)
+    if (!success) {
       setError(true)
     }
   }
@@ -195,9 +196,9 @@ export default function Login() {
 
             {/* Portals */}
             <div style={{ display: 'flex', gap: 16 }}>
-              <PortalBtn icon={<Users size={20} />} color="#4F46E5" title="Sales Portal" subtitle="Sales Team Login" />
-              <PortalBtn icon={<ShoppingCart size={20} />} color="#10B981" title="Purchase Portal" subtitle="Purchase Team Login" />
-              <PortalBtn icon={<Archive size={20} />} color="#F59E0B" title="Inventory Portal" subtitle="Inventory Team Login" />
+              <PortalBtn onClick={() => login('admin', 'admin')} icon={<Users size={20} />} color="#4F46E5" title="Sales Portal" subtitle="Sales Team Login" />
+              <PortalBtn onClick={() => login('admin', 'admin')} icon={<ShoppingCart size={20} />} color="#10B981" title="Purchase Portal" subtitle="Purchase Team Login" />
+              <PortalBtn onClick={() => login('admin', 'admin')} icon={<Archive size={20} />} color="#F59E0B" title="Inventory Portal" subtitle="Inventory Team Login" />
             </div>
 
           </div>
@@ -232,9 +233,12 @@ function Feature({ icon, color, title, desc }) {
   )
 }
 
-function PortalBtn({ icon, color, title, subtitle }) {
+function PortalBtn({ icon, color, title, subtitle, onClick }) {
   return (
-    <button style={{ 
+    <button 
+      type="button"
+      onClick={onClick}
+      style={{ 
       flex: 1, 
       background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, 
       padding: '12px 8px', 

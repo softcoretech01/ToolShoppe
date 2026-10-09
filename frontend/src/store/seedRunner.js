@@ -241,6 +241,159 @@ export function buildDemoState() {
   vq2('SUP-003', { [i4]: 615, [i5]: 398, [i6]: 720 }, 0, 8, 'MHA/Q/2026/88', '15 days')
 
   /* CR-0003 is left at Requested so the RFQ step can be demonstrated. */
+
+  /* ===== CR-0004: Quotation accepted by Bharat Engineering Works, ready for Customer PO (SP-06) ===== */
+  run({
+    type: 'CR_CREATE',
+    payload: {
+      date: d(4),
+      customerId: cust('CUS-001').id,
+      requiredBy: addDays(today(), 10),
+      reference: 'BEW/REQ/2026/099',
+      remarks: 'Replenishment tools per test SP-06.',
+      lines: [
+        { itemId: item('ITM-0001').id, description: item('ITM-0001').description, qty: 10, unit: 'Set', remarks: '' },
+      ],
+    },
+  })
+  const cr4 = last('customerRequests')
+  const pr4 = s.purchaseRequests.find((p) => p.crId === cr4.id)
+  run({
+    type: 'PR_SEND_RFQ',
+    prId: pr4.id,
+    supplierIds: [sup('SUP-002').id],
+    subject: `Request for Quotation - ${pr4.prNo} (Ref ${cr4.crNo})`,
+    body: rfqBody(s, pr4),
+  })
+  run({
+    type: 'VQ_SAVE',
+    payload: {
+      prId: pr4.id,
+      supplierId: sup('SUP-002').id,
+      quoteRef: 'GIS/Q/2026/77',
+      quoteDate: d(3),
+      validTill: addDays(today(), 15),
+      deliveryDays: 5,
+      paymentTerms: '30 days',
+      freight: 100,
+      lines: [{ itemId: item('ITM-0001').id, qty: 10, rate: 850, taxPct: 18, notQuoted: false }],
+    },
+  })
+  const vq4 = s.vendorQuotations.find((v) => v.prId === pr4.id)
+  run({ type: 'QC_CREATE', prId: pr4.id })
+  const qc4 = s.quotationComparisons.find((q) => q.prId === pr4.id)
+  run({
+    type: 'QC_APPROVE',
+    qcId: qc4.id,
+    selectedVqId: vq4.id,
+    overrideReason: 'Approved for test order',
+  })
+  run({
+    type: 'QC_SEND_TO_CUSTOMER',
+    qcId: qc4.id,
+    validTill: addDays(today(), 15),
+    lines: [{ itemId: item('ITM-0001').id, qty: 10, supplierRate: 850, customerPrice: 978, taxPct: 18 }],
+    subject: `Quotation for ${cr4.reference}`,
+    body: 'Please find our offer attached.',
+  })
+  const cq4 = s.customerQuotations.find((q) => q.crId === cr4.id)
+  run({ type: 'CQ_SET_STATUS', cqId: cq4.id, status: 'Accepted' })
+
+  /* ===== CR-0005: Order with inward stock on hand (10 Qty), ready for Outward (SP-08) ===== */
+  run({
+    type: 'CR_CREATE',
+    payload: {
+      date: d(8),
+      customerId: cust('CUS-001').id,
+      requiredBy: addDays(today(), 5),
+      reference: 'BEW/REQ/2026/088',
+      remarks: 'Tools order for assembly shop. Ready for dispatch test.',
+      lines: [
+        { itemId: item('ITM-0001').id, description: item('ITM-0001').description, qty: 10, unit: 'Set', remarks: '' },
+      ],
+    },
+  })
+  const cr5 = last('customerRequests')
+  const pr5 = s.purchaseRequests.find((p) => p.crId === cr5.id)
+  run({
+    type: 'PR_SEND_RFQ',
+    prId: pr5.id,
+    supplierIds: [sup('SUP-002').id],
+    subject: `Request for Quotation - ${pr5.prNo}`,
+    body: rfqBody(s, pr5),
+  })
+  run({
+    type: 'VQ_SAVE',
+    payload: {
+      prId: pr5.id,
+      supplierId: sup('SUP-002').id,
+      quoteRef: 'GIS/Q/2026/88',
+      quoteDate: d(6),
+      validTill: addDays(today(), 15),
+      deliveryDays: 3,
+      paymentTerms: '30 days',
+      freight: 50,
+      lines: [{ itemId: item('ITM-0001').id, qty: 10, rate: 850, taxPct: 18, notQuoted: false }],
+    },
+  })
+  const vq5 = s.vendorQuotations.find((v) => v.prId === pr5.id)
+  run({ type: 'QC_CREATE', prId: pr5.id })
+  const qc5 = s.quotationComparisons.find((q) => q.prId === pr5.id)
+  run({
+    type: 'QC_APPROVE',
+    qcId: qc5.id,
+    selectedVqId: vq5.id,
+    overrideReason: 'Approved for test order',
+  })
+  run({
+    type: 'QC_SEND_TO_CUSTOMER',
+    qcId: qc5.id,
+    validTill: addDays(today(), 15),
+    lines: [{ itemId: item('ITM-0001').id, qty: 10, supplierRate: 850, customerPrice: 978, taxPct: 18 }],
+    subject: `Quotation for ${cr5.reference}`,
+    body: 'Please find our offer attached.',
+  })
+  const cq5 = s.customerQuotations.find((q) => q.crId === cr5.id)
+  run({ type: 'CQ_SET_STATUS', cqId: cq5.id, status: 'Accepted' })
+  run({
+    type: 'SO_CREATE',
+    payload: {
+      cqId: cq5.id,
+      date: d(4),
+      customerPoNo: 'PO-BEW-2026-088',
+      customerPoDate: d(4),
+      deliveryDate: addDays(today(), 3),
+      lines: cq5.lines.map((l) => ({ itemId: l.itemId, qty: l.qty, price: l.customerPrice })),
+    },
+  })
+  const so5 = s.salesOrders.find((x) => x.crId === cr5.id)
+  const po5 = s.purchaseOrders.find((x) => x.crId === cr5.id)
+  run({
+    type: 'PO_SEND',
+    poId: po5.id,
+    subject: `Purchase Order ${po5.poNo}`,
+    body: poBody(s, po5),
+  })
+  run({
+    type: 'GRN_CREATE',
+    payload: {
+      poId: po5.id,
+      date: d(2),
+      supplierRef: 'GIS/DC/2026/889',
+      receivedBy: 'Stores - Mani',
+      remarks: 'All 10 items received in perfect condition.',
+      lines: po5.lines.map((l) => ({
+        itemId: l.itemId,
+        receivedQty: l.qty,
+        acceptedQty: l.qty,
+        rejectedQty: 0,
+        rate: l.rate,
+      })),
+    },
+  })
+  const inw5 = s.inwards.find((x) => x.crId === cr5.id)
+  run({ type: 'INW_ADD_TO_STOCK', inwId: inw5.id })
+
   return s
 }
 
@@ -263,8 +416,9 @@ export function rfqBody(s, pr) {
     'Please confirm unit rate, GST, delivery period and validity.',
     '',
     'Regards,',
-    'Purchase Department',
-    'Toolsphoppe',
+    'Purchase & Sourcing Department',
+    'ToolShoppe Industrial Supply Pvt. Ltd.',
+    'tdevendiran123@gmail.com',
   ]
     .filter(Boolean)
     .join('\n')
@@ -289,7 +443,8 @@ export function poBody(s, po) {
     'Kindly acknowledge receipt of this order.',
     '',
     'Regards,',
-    'Purchase Department',
-    'Toolsphoppe',
+    'Purchase & Sourcing Department',
+    'ToolShoppe Industrial Supply Pvt. Ltd.',
+    'tdevendiran123@gmail.com',
   ].join('\n')
 }

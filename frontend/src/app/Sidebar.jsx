@@ -10,7 +10,7 @@ import { useConfirm, useToast } from '../components/ui/index.js'
 export default function Sidebar({ collapsed, counts, onNavigate }) {
   const nav = useNavigate()
   const loc = useLocation()
-  const { logout, resetDemo } = useApp()
+  const { logout, resetDemo, backendConnected } = useApp()
   const confirm = useConfirm()
   const toast = useToast()
 
@@ -112,14 +112,46 @@ export default function Sidebar({ collapsed, counts, onNavigate }) {
 
       <div className="sb-foot">
         {!collapsed && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+            <button
+              type="button"
+              className="sb-item"
+              onClick={() =>
+                confirm({
+                  title: 'Reset Demo Data?',
+                  description: 'This will restore all demo documents and master records to their initial clean state.',
+                  okText: 'Reset',
+                  tone: 'warning',
+                  onConfirm: () => {
+                    resetDemo()
+                    toast.success('Demo data restored successfully.')
+                  },
+                })
+              }
+            >
+              <span className="sb-ic"><RotateCw size={15} strokeWidth={2} /></span>
+              <span className="sb-lb">Reset Demo</span>
+            </button>
             <button type="button" className="sb-item" onClick={() => logout()}>
-              <span className="sb-ic"><LogOut size={16} strokeWidth={2} /></span>
+              <span className="sb-ic"><LogOut size={15} strokeWidth={2} /></span>
               <span className="sb-lb">Sign out</span>
             </button>
           </div>
         )}
-        {!collapsed && <div className="dim" style={{ fontSize: 11, padding: '0 16px' }}>Prototype build · local data</div>}
+        {!collapsed && (
+          <div className="dim" style={{ fontSize: 11, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: backendConnected ? '#10B981' : '#9CA3AF',
+                display: 'inline-block',
+              }}
+            />
+            <span>{backendConnected ? 'ToolShoppe ERP · Live' : 'ToolShoppe ERP'}</span>
+          </div>
+        )}
       </div>
     </div>
   )

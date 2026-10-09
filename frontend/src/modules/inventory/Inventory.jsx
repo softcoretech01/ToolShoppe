@@ -222,7 +222,7 @@ export default function Inventory() {
     },
     {
       key: 'stock',
-      label: 'Stock summary',
+      label: `Stock summary (${stock.length})`,
       children: stock.length ? (
         <Table
           size="small"
@@ -305,11 +305,21 @@ export default function Inventory() {
       />
 
       <div className="kpi-grid" style={{ marginBottom: 16 }}>
-        <KpiCard label="Total items" value={stock.length} icon={Layers} tone="primary" hint={`${onHandItems.length} with stock on hand`} />
-        <KpiCard label="Total stock quantity" value={nf(totalQty, 2)} icon={Package} tone={totalQty > 0 ? 'warning' : 'neutral'} hint="held against open orders" />
-        <KpiCard label="Stock value" value={`₹ ${nf(stockValue, 0)}`} icon={Boxes} tone={stockValue > 0 ? 'teal' : 'neutral'} hint="at average inward cost" />
-        <KpiCard label="Total inward" value={`₹ ${nf(inValue, 0)}`} icon={ArrowDownToLine} tone="info" hint={`${inRows.length} movement${inRows.length === 1 ? '' : 's'}`} />
-        <KpiCard label="Total outward" value={`₹ ${nf(outValue, 0)}`} icon={ArrowUpFromLine} tone="success" hint={`${outRows.length} movement${outRows.length === 1 ? '' : 's'}`} />
+        <div style={{ cursor: 'pointer' }} onClick={() => setTab('stock')}>
+          <KpiCard label="Total items" value={stock.length} icon={Layers} tone="primary" hint={`${onHandItems.length} with stock on hand (Click to view)`} />
+        </div>
+        <div style={{ cursor: 'pointer' }} onClick={() => setTab('stock')}>
+          <KpiCard label="Total stock quantity" value={nf(totalQty, 2)} icon={Package} tone={totalQty > 0 ? 'warning' : 'neutral'} hint="held against open orders (Click to view)" />
+        </div>
+        <div style={{ cursor: 'pointer' }} onClick={() => setTab('stock')}>
+          <KpiCard label="Stock value" value={`₹ ${nf(stockValue, 0)}`} icon={Boxes} tone={stockValue > 0 ? 'teal' : 'neutral'} hint="at average inward cost (Click to view)" />
+        </div>
+        <div style={{ cursor: 'pointer' }} onClick={() => setTab('ledger')}>
+          <KpiCard label="Total inward" value={`₹ ${nf(inValue, 0)}`} icon={ArrowDownToLine} tone="info" hint={`${inRows.length} movement${inRows.length === 1 ? '' : 's'} (Click to view)`} />
+        </div>
+        <div style={{ cursor: 'pointer' }} onClick={() => setTab('ledger')}>
+          <KpiCard label="Total outward" value={`₹ ${nf(outValue, 0)}`} icon={ArrowUpFromLine} tone="success" hint={`${outRows.length} movement${outRows.length === 1 ? '' : 's'} (Click to view)`} />
+        </div>
       </div>
 
       <div className="tbl-card">

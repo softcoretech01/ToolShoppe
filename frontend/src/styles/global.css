@@ -523,10 +523,31 @@ a.doc-no:hover {
   text-align: right !important;
 }
 
-/* Force custom flex containers in Actions column to align right and never wrap */
+/* Force custom flex containers in Actions column to align uniformly from start and never wrap */
 .col-actions>div {
-  justify-content: flex-end !important;
+  justify-content: flex-start !important;
   flex-wrap: nowrap !important;
+}
+
+.tbl-card .ant-table-cell-fix-right,
+.tbl-card .ant-table-cell-fix-left {
+  background: var(--c-card, #ffffff) !important;
+  z-index: 2;
+}
+
+.tbl-card .ant-table-thead > tr > th.ant-table-cell-fix-right,
+.tbl-card .ant-table-thead > tr > th.ant-table-cell-fix-left {
+  background: #f8fafc !important;
+  z-index: 3;
+}
+
+.tbl-card .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-right,
+.tbl-card .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-left {
+  background: #f1f5f9 !important;
+}
+
+.tbl-card .ant-table-cell {
+  white-space: nowrap;
 }
 
 /* -------------------------------------------------------------- filters -- */

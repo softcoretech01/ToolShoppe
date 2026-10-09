@@ -16,13 +16,20 @@ export default function CustomerRequestView() {
   const { id } = useParams()
   const nav = useNavigate()
   const s = useStore()
-  const cr = s.customerRequests.find((x) => x.id === id)
+  const cr = (s.customerRequests || []).find((x) => String(x.id) === String(id) || (x.localId && String(x.localId) === String(id)) || String(x.crNo) === String(id))
   useDocLabel(cr ? cr.crNo : null)
+
+  React.useEffect(() => {
+    if (cr && String(cr.id) !== String(id) && typeof cr.id !== 'undefined') {
+      nav(`/sales/customer-request/${cr.id}`, { replace: true })
+    }
+  }, [cr, id, nav])
+
   if (!cr) return <Navigate to="/sales/customer-request" replace />
 
   const ch = crChain(s, cr.id)
   const stageIndex = CR_STAGES.indexOf(cr.stage)
-  const cust = s.customers.find((c) => c.id === cr.customerId)
+  const cust = s.customers.find((c) => String(c.id) === String(cr.customerId))
 
   const docs = []
   const push = (label, no, date, status, to) => docs.push({ key: `${label}-${no}`, label, no, date, status, to })

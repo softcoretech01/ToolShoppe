@@ -21,15 +21,37 @@ export default function Items() {
   const toast = useToast()
   const [draft, setDraft] = useState(null)
   const [view, setView] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
-  const save = () => {
+  const save = async () => {
     if (!draft.name.trim()) return toast.warning('Please enter the item name.')
     if (!draft.category) return toast.warning('Please choose a category.')
-    dispatch({ type: 'MASTER_SAVE', collection: 'items', codeType: 'ITM', record: draft })
-    toast.success(draft.id ? 'Item updated successfully.' : 'Item created successfully.')
-    setDraft(null)
+    const isDup = (state.items || []).some(
+      (i) => i.name && i.name.trim().toLowerCase() === draft.name.trim().toLowerCase() && String(i.id) !== String(draft.id)
+    )
+    if (isDup) return toast.warning(`An item named "${draft.name.trim()}" already exists.`)
+
+    setSubmitting(true)
+    try {
+      await dispatch({
+        type: 'MASTER_SAVE',
+        collection: 'items',
+        codeType: 'ITM',
+        record: draft,
+        throwOnError: true,
+      })
+      toast.success(draft.id ? 'Item updated successfully.' : 'Item created successfully.')
+      setDraft(null)
+    } catch (err) {
+      if (!draft.id) {
+        dispatch({ type: 'MASTER_DELETE', collection: 'items', id: draft.name })
+      }
+      toast.error(err?.message || 'Failed to save item. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const toggle = (r) =>
@@ -140,8 +162,9 @@ export default function Items() {
         open={!!draft}
         title={draft?.id ? `Edit item ${draft.code}` : 'New item'}
         subtitle="Fields marked with an asterisk are required."
-        onCancel={() => setDraft(null)}
+        onCancel={() => !submitting && setDraft(null)}
         onOk={save}
+        confirmLoading={submitting}
         okText={draft?.id ? 'Save changes' : 'Create item'}
         width={860}
       >

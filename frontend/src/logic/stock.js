@@ -2,14 +2,16 @@ import { round2, sum } from './pricing.js'
 
 /** Stock is tracked per item + CR, never as free stock. */
 export function available(ledger, itemId, crId) {
-  const rows = ledger.filter((r) => r.itemId === itemId && r.crId === crId)
-  const inQty = sum(rows.filter((r) => r.type === 'IN'), (r) => r.qty)
-  const outQty = sum(rows.filter((r) => r.type === 'OUT'), (r) => r.qty)
+  const rows = (ledger || []).filter(
+    (r) => String(r.itemId) === String(itemId) && String(r.crId) === String(crId)
+  )
+  const inQty = sum(rows.filter((r) => r.type === 'IN'), (r) => Number(r.qty) || 0)
+  const outQty = sum(rows.filter((r) => r.type === 'OUT'), (r) => Number(r.qty) || 0)
   return round2(inQty - outQty)
 }
 
 export function crHasStock(ledger, crId) {
-  const rows = ledger.filter((r) => r.crId === crId)
+  const rows = (ledger || []).filter((r) => String(r.crId) === String(crId))
   const items = [...new Set(rows.map((r) => r.itemId))]
   return items.some((i) => available(ledger, i, crId) > 0)
 }

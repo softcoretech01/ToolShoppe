@@ -18,7 +18,12 @@ export default function PurchaseInvoice() {
   const [params, setParams] = useSearchParams()
   const [draft, setDraft] = useState(null)
 
-  const openGrns = useMemo(() => state.grns.filter((g) => g.status === 'Received'), [state])
+  const openGrns = useMemo(() => {
+    return (state.grns || []).filter((g) => {
+      if (draft && String(g.id) === String(draft.grnId)) return true
+      return g.status === 'Received'
+    })
+  }, [state.grns, draft])
 
   const startFor = (grnId) => {
     const g = state.grns.find((x) => x.id === grnId)
@@ -76,32 +81,33 @@ export default function PurchaseInvoice() {
     {
       title: 'Invoice No',
       dataIndex: 'piNo',
-      width: 116,
+      width: 108,
       sorter: true,
       render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/invoice/${r.id}`)}>{v}</a>,
     },
     {
       title: 'Supplier',
       dataIndex: 'supplier',
+      width: 170,
+      ellipsis: true,
       sorter: true,
       render: (v, r) => (
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 550 }}>{v}</div>
+          <div style={{ fontWeight: 550, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</div>
           <div className="dim" style={{ fontSize: 11.5 }}>Their inv {r.supplierInvNo}</div>
         </div>
       ),
     },
-    { title: 'PO No', dataIndex: 'poNo', width: 106, render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/purchase-order/${r.poId}`)}>{v}</a> },
-    { title: 'GRN No', dataIndex: 'grnNo', width: 114, render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/grn/${r.grnId}`)}>{v}</a> },
-    { title: 'Request No', dataIndex: 'crNo', width: 122, render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
-    { title: 'Date', dataIndex: 'date', width: 124, sorter: true, render: fmtDate },
-    { title: 'Amount', dataIndex: 'total', width: 152, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
-    { title: 'Due date', dataIndex: 'dueDate', width: 124, render: fmtDate },
-    { title: 'Status', dataIndex: 'status', width: 108, render: (v) => <StatusBadge status={v} /> },
+    { title: 'PO No', dataIndex: 'poNo', width: 95, render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/purchase-order/${r.poId}`)}>{v}</a> },
+    { title: 'GRN No', dataIndex: 'grnNo', width: 95, render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/grn/${r.grnId}`)}>{v}</a> },
+    { title: 'Request No', dataIndex: 'crNo', width: 105, render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
+    { title: 'Date', dataIndex: 'date', width: 115, sorter: true, render: fmtDate },
+    { title: 'Amount', dataIndex: 'total', width: 120, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
+    { title: 'Due date', dataIndex: 'dueDate', width: 115, render: fmtDate },
+    { title: 'Status', dataIndex: 'status', width: 100, render: (v) => <StatusBadge status={v} /> },
     {
       title: 'Actions',
-      width: 78,
-      fixed: 'right',
+      width: 75,
       render: (_, r) => (
         <RowActions>
           <IconBtn icon={Eye} label="View invoice" onClick={() => nav(`/purchase/invoice/${r.id}`)} />
@@ -136,7 +142,7 @@ export default function PurchaseInvoice() {
       <DataTable
         columns={columns}
         data={rows}
-        scrollX={1500}
+        scrollX={1060}
         showRange
         searchKeys={['piNo', 'poNo', 'grnNo', 'crNo', 'supplier', 'supplierInvNo']}
         searchPlaceholder="Search invoice, PO, GRN, supplier…"
@@ -180,8 +186,15 @@ export default function PurchaseInvoice() {
                       value={draft.grnId || undefined}
                       onChange={startFor}
                       options={openGrns.map((g) => {
-                        const cr = getCR(state, g.crId)
-                        return { value: g.id, label: `${g.grnNo} — ${cr ? cr.crNo : ''} — ${supplierName(state, g.supplierId)}` }
+                        const po = (state.purchaseOrders || []).find((p) => String(p.id) === String(g.poId))
+                        const crId = g.crId || (po ? po.crId : null)
+                        const cr = getCR(state, crId)
+                        const sup = supplierName(state, g.supplierId || (po ? po.supplierId : null))
+                        const parts = [g.grnNo]
+                        if (po && po.poNo) parts.push(po.poNo)
+                        if (cr && cr.crNo) parts.push(cr.crNo)
+                        if (sup && sup !== '—') parts.push(sup)
+                        return { value: g.id, label: parts.join(' — ') }
                       })}
                     />
                   </Field>

@@ -47,25 +47,32 @@ export default function PurchaseOrder() {
       render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/purchase-order/${r.id}`)}>{v}</a>,
     },
     { title: 'PR No', dataIndex: 'prNo', width: 104, render: (v) => <span className="muted num">{v}</span> },
-    { title: 'Supplier', dataIndex: 'supplier', sorter: true, render: (v) => <span style={{ fontWeight: 550 }}>{v}</span> },
+    {
+      title: 'Supplier',
+      dataIndex: 'supplier',
+      width: 170,
+      ellipsis: true,
+      sorter: true,
+      render: (v) => <span style={{ fontWeight: 550 }}>{v}</span>,
+    },
     { title: 'Quotation No', dataIndex: 'vqNo', width: 128, render: (v, r) => <a className="doc-no" onClick={() => nav(`/purchase/vendor-quotation/${r.vqId}`)}>{v}</a> },
     { title: 'Request No', dataIndex: 'crNo', width: 122, render: (v, r) => <RefChip onClick={() => nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
-    { title: 'Date', dataIndex: 'date', width: 124, sorter: true, render: fmtDate },
-    { title: 'Amount', dataIndex: 'total', width: 150, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
-    { title: 'Expected delivery', dataIndex: 'expectedDelivery', width: 152, render: fmtDate },
-    { title: 'Status', dataIndex: 'status', width: 160, render: (v) => <StatusBadge status={v} /> },
+    { title: 'Date', dataIndex: 'date', width: 120, sorter: true, render: fmtDate },
+    { title: 'Amount', dataIndex: 'total', width: 140, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
+    { title: 'Expected delivery', dataIndex: 'expectedDelivery', width: 140, render: fmtDate },
+    { title: 'Status', dataIndex: 'status', width: 140, render: (v) => <StatusBadge status={v} /> },
     {
       title: 'Actions',
-      width: 208,
+      width: 170,
       fixed: 'right',
       render: (_, r) => (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
+          <IconBtn icon={Eye} label="View order" onClick={() => nav(`/purchase/purchase-order/${r.id}`)} />
           {r.status === 'Draft' && (
             <Btn variant="primary" size="small" icon={Send} onClick={() => setSending(r)}>
               Send PO
             </Btn>
           )}
-          <IconBtn icon={Eye} label="View order" onClick={() => nav(`/purchase/purchase-order/${r.id}`)} />
         </div>
       ),
     },
@@ -81,7 +88,7 @@ export default function PurchaseOrder() {
       <DataTable
         columns={columns}
         data={rows}
-        scrollX={1560}
+        scrollX={1280}
         showRange
         searchKeys={['poNo', 'crNo', 'soNo', 'vqNo', 'supplier']}
         searchPlaceholder="Search PO, request, supplier…"

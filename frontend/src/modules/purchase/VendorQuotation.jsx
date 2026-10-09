@@ -51,30 +51,39 @@ export default function VendorQuotation() {
     {
       title: 'Supplier',
       dataIndex: 'supplier',
+      width: 180,
+      ellipsis: true,
       sorter: true,
       render: (v, r) => (
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 550 }}>{v}</div>
+          <div style={{ fontWeight: 550, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</div>
           {r.quoteRef && <div className="dim" style={{ fontSize: 11.5 }}>Ref {r.quoteRef}</div>}
         </div>
       ),
     },
     { title: 'Request No', dataIndex: 'crNo', width: 122, render: (v, r) => <RefChip onClick={() => r.crId && nav(`/sales/customer-request/${r.crId}`)}>{v}</RefChip> },
-    { title: 'Date', dataIndex: 'quoteDate', width: 124, sorter: true, render: fmtDate },
-    { title: 'Amount', dataIndex: 'grandTotal', width: 150, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
+    { title: 'Date', dataIndex: 'quoteDate', width: 120, sorter: true, render: fmtDate },
+    { title: 'Amount', dataIndex: 'grandTotal', width: 140, numeric: true, sorter: true, render: (v) => <Money value={v} strong /> },
     { title: 'Delivery', dataIndex: 'deliveryDays', width: 106, numeric: true, sorter: true, render: (v) => <span className="num">{v} days</span> },
     { title: 'Status', dataIndex: 'status', width: 118, render: (v) => <StatusBadge status={v} /> },
     {
       title: 'Actions',
-      width: 176,
+      width: 180,
       fixed: 'right',
       render: (_, r) => (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
           <IconBtn
-            icon={r.status === 'Received' ? Pencil : Eye}
-            label={r.status === 'Received' ? 'Edit quotation' : 'View quotation'}
+            icon={Eye}
+            label="View quotation"
             onClick={() => nav(`/purchase/vendor-quotation/${r.id}`)}
           />
+          {r.status === 'Received' && (
+            <IconBtn
+              icon={Pencil}
+              label="Edit quotation"
+              onClick={() => nav(`/purchase/vendor-quotation/${r.id}`)}
+            />
+          )}
           {r.siblings >= 1 && r.prStatus !== 'Ordered' && (
             <Btn
               variant="outline"
@@ -109,7 +118,7 @@ export default function VendorQuotation() {
       <DataTable
         columns={columns}
         data={rows}
-        scrollX={1400}
+        scrollX={1180}
         showRange
         rangeKey="quoteDate"
         searchKeys={['vqNo', 'prNo', 'crNo', 'supplier', 'quoteRef']}

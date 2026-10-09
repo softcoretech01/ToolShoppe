@@ -12,14 +12,21 @@ export default function GRNView() {
   const { id } = useParams()
   const nav = useNavigate()
   const s = useStore()
-  const g = s.grns.find((x) => x.id === id)
+  const g = (s.grns || []).find((x) => String(x.id) === String(id) || (x.localId && String(x.localId) === String(id)) || String(x.grnNo) === String(id))
   useDocLabel(g ? g.grnNo : null)
+
+  React.useEffect(() => {
+    if (g && String(g.id) !== String(id) && typeof g.id !== 'undefined') {
+      nav(`/purchase/grn/${g.id}`, { replace: true })
+    }
+  }, [g, id, nav])
+
   if (!g) return <Navigate to="/purchase/grn" replace />
 
-  const po = s.purchaseOrders.find((x) => x.id === g.poId)
+  const po = (s.purchaseOrders || []).find((x) => String(x.id) === String(g.poId))
   const cr = getCR(s, g.crId)
-  const inw = s.inwards.find((x) => x.grnId === g.id)
-  const pi = s.purchaseInvoices.find((x) => x.grnId === g.id)
+  const inw = (s.inwards || []).find((x) => String(x.grnId) === String(g.id))
+  const pi = (s.purchaseInvoices || []).find((x) => String(x.grnId) === String(g.id))
 
   return (
     <div>
